@@ -30,23 +30,29 @@ def product(PRODUCT):
                               cursorclass=pymysql.cursors.DictCursor)
     with db_conn.cursor() as cursor:
         cursor.execute("""SELECT
-            P.PRODUCT AS product
+            P.PRODUCT AS product 
             ,P.PRODUCT_GROUP AS product_group
             ,P.VOLUME AS volume
             ,P.MEASUREMENT_UNIT AS units
             ,P.VALUE AS value
             ,P.YEAR AS year
-            ,L.STATE as state
-            FROM PRODUCTS P
-            LEFT JOIN locations L
-                ON P.PRODUCT = L.PRODUCT                  
+            FROM PRODUCTS P               
             WHERE P.PRODUCT=%s""", (PRODUCT, )
                        )
         PRODUCT = cursor.fetchone()
-        if not PRODUCT:
+        if not product:
             abort(404)
         else:
             remove_null_fields(PRODUCT)
+    with db_conn.cursor() as cursor:
+        cursor.execute("""SELECT distinct STATE as state FROM locations L
+                       JOIN products P
+                            ON L.product  = P.product 
+                       WHERE P.product=%s""", 
+                       (PRODUCT['product'], ))
+        states = cursor.fetchall()
+        PRODUCT['state'] = [s['state'] for s in states]
+        remove_null_fields(PRODUCT)
     db_conn.close()
     return PRODUCT
 
